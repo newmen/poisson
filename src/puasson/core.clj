@@ -2,6 +2,8 @@
   (:require [incanter.core :as i]
             [incanter.charts :as c]))
 
+(def sparse-overload-coef 5)
+
 (defn transpose
   [matrix]
   (apply mapv vector matrix))
@@ -14,8 +16,8 @@
 
 (defn fps
   [lambda]
-  (let [N 5000
-        mmx (* 4 lambda)
+  (let [N 25000
+        mmx (* 500 lambda)
         step (/ mmx N)
         rg (range 0 N)
         ks (map (partial * step) rg)]
@@ -27,20 +29,11 @@
    (prange 98 lambda))
   ([percentil lambda]
    (let [min-p (- 1 (/ (int (* percentil 10000)) 1000000))
-         vps (fps lambda)
-         kps (->> vps
-                  (map (fn [[k p]]
-                         [k (- p min-p)]))
-                  (filter (comp neg? second)))
-         no? (empty? kps)
-         kps (if no? vps kps)
-         lsf (comp (partial > lambda) first)
-         left (take-while lsf kps)
-         left (if (empty? left) [(first vps)] left)
-         right (drop-while lsf kps)
-         xf (if no? min-key max-key)
-         msf (comp first (partial apply (partial xf second)))]
-     [(msf left) (msf right)])))
+         kps (->> (fps lambda)
+                  (filter (comp (partial < min-p) second)))]
+     (if (empty? kps)
+       [lambda lambda]
+       [(first (first kps)) (first (last kps))]))))
 
 (defn chart
   ([lambda title]
@@ -60,6 +53,28 @@
                  :series-label "Puasson distribution"
                  :title title)))))
 
+(defn calc-lambda-rps
+  [percentil total aps]
+  (let [rf (comp second (partial prange percentil))
+        cf (comp int #(Math/ceil %))
+        lambda1 aps
+        max0 (rf lambda1)
+        rpx (* max0 3600)
+        sparse? (> rpx total)
+        [max1 rph] (if sparse?
+                     [(/ max0 sparse-overload-coef) (cf (/ rpx sparse-overload-coef))]
+                     [max0 (cf rpx)])
+        lambda2 max1
+        max2 (rf lambda2)
+        rpm (cf (* max2 60))
+        lambda3 max2
+        max3 (rf lambda3)
+        rps (cf max3)]
+    [sparse?
+     [[lambda1 rph]
+      [lambda2 rpm]
+      [lambda3 rps]]]))
+
 (defn triples
   ([day-n]
    (triples day-n 0))
@@ -70,23 +85,21 @@
   ([day-go-n day-region-n grow-percent]
    (triples 98 day-go-n day-region-n grow-percent))
   ([percentil day-go-n day-region-n grow-percent]
-   (let [gp (+ 1 (/ grow-percent 100))
+   (let [total (+ day-go-n day-region-n)
+         gp (+ 1 (/ grow-percent 100))
          dgn (* day-go-n gp)
          drn (* day-region-n gp)
          aph (+ (/ dgn 8) (/ drn 14))
          apm (/ aph 60)
          aps (/ apm 60)
-         rf (comp second (partial prange percentil))
-         cf (comp int #(Math/ceil %))
-         lambda1 aps
-         max1 (rf lambda1)
-         rph (cf (* max1 3600))
-         lambda2 max1
-         max2 (rf lambda2)
-         rpm (cf (* max2 60))
-         lambda3 max2
-         max3 (rf lambda3)
-         rps (cf max3)]
+         [sparse?
+          [[lambda1 rph]
+           [lambda2 rpm]
+           [lambda3 rps]]] (calc-lambda-rps percentil total aps)
+         p (->> (fps aps)
+                (drop-while (comp (partial > rps) first))
+                first
+                second)]
      (chart lambda1 (str "Peak per Hour: " rph))
      (chart lambda2 (str "Peak per Minute: " rpm))
      (chart lambda3 (str "Peak per Second: " rps))
@@ -94,9 +107,11 @@
       :aph (float aph)
       :apm (float apm)
       :aps (float aps)
+      :sparse? sparse?
       :rph rph
       :rpm rpm
-      :rps rps})))
+      :rps rps
+      :P p})))
 
 (comment
 
@@ -111,14 +126,15 @@
 
   (triples 1400 100)
 
-  (prange 98 0.07097222)
-  (prange 99.95 0.07097222)
-  (prange 99.95 0.283860491112)
-  (prange 99.95 1.1353284202515552)
+  ;; (prange 98 0.07097222)
+  ;; (prange 99.95 0.07097222)
+  ;; (prange 99.95 0.283860491112)
+  ;; (prange 99.95 1.1353284202515552)
+
   ;; (- 1 (/ (int (* 99.95 10000)) 1000000))
 
   (->> (fps 0.07097222)
-       (filter (comp (partial < 8) first))
+       (drop-while (comp (partial > 5) first))
        (take 5))
 
   ;; (take-last 10 (fps 0.00097222))
