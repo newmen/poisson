@@ -2,7 +2,7 @@
   (:require [incanter.core :as i]
             [incanter.charts :as c]))
 
-(def sparse-overload-coef 3)
+(def sparse-overload-coef (Math/pow 1.618 2))
 
 (defn transpose
   [matrix]
@@ -53,25 +53,33 @@
                  :series-label "Puasson distribution"
                  :title title)))))
 
+(def cf (comp int #(Math/ceil %)))
+
+(defn limit-top
+  [total max0 rpx]
+  (let [max-rpx (/ total sparse-overload-coef)
+        sparse-coef (/ rpx max-rpx)
+        sparse? (> sparse-coef 1)]
+    [sparse?
+     (if sparse?
+       [(/ max0 sparse-coef) (cf (/ rpx sparse-coef))]
+       [max0 (cf rpx)])]))
+
 (defn calc-lambda-rps
   [percentil total lambda1]
   (let [rf (comp second (partial prange percentil))
-        cf (comp int #(Math/ceil %))
-        max0 (rf lambda1)
-        rpx (* max0 3600)
-        max-rph (/ total sparse-overload-coef)
-        sparse-coef (/ rpx max-rph)
-        sparse? (> sparse-coef 1)
-        [max1 rph] (if sparse?
-                     [(/ max0 sparse-coef) (cf (/ rpx sparse-coef))]
-                     [max0 (cf rpx)])
+        max01 (rf lambda1)
+        rph01 (* max01 3600)
+        [sparse1? [max1 rph]] (limit-top total max01 rph01)
         lambda2 max1
-        max2 (rf lambda2)
-        rpm (cf (* max2 60))
+        max02 (rf lambda2)
+        rpm02 (cf (* max02 60))
+        [sparse2? [max2 rpm]] (limit-top rph max02 rpm02)
         lambda3 max2
-        max3 (rf lambda3)
-        rps (cf max3)]
-    [sparse?
+        max03 (rf lambda3)
+        rps03 (cf max03)
+        [sparse3? [_ rps]] (limit-top rpm max03 rps03)]
+    [(or sparse1? sparse2? sparse3?)
      [[lambda1 rph]
       [lambda2 rpm]
       [lambda3 rps]]]))
@@ -84,10 +92,10 @@
          day-region-n (- day-n day-go-n)]
      (triples day-go-n day-region-n grow-percent)))
   ([day-go-n day-region-n grow-percent]
-   (triples 98 day-go-n day-region-n grow-percent))
+   (triples 80 day-go-n day-region-n grow-percent))
   ([percentil day-go-n day-region-n grow-percent]
-   (let [total (+ day-go-n day-region-n)
-         gp (+ 1 (/ grow-percent 100))
+   (let [gp (+ 1 (/ grow-percent 100))
+         total (* (+ day-go-n day-region-n) gp)
          dgn (* day-go-n gp)
          drn (* day-region-n gp)
          aph (+ (/ dgn 8) (/ drn 14))
@@ -105,27 +113,30 @@
      (chart lambda2 (str "Peak per Minute: " rpm))
      (chart lambda3 (str "Peak per Second: " rps))
      {:percentil percentil
-      :aph (float aph)
-      :apm (float apm)
-      :aps (float aps)
+      :total total
+      :average {:ph (float aph)
+                :pm (float apm)
+                :ps (float aps)}
       :sparse? sparse?
-      :rph rph
-      :rpm rpm
-      :rps rps
-      :P p})))
+      :peak {:ph rph
+             :pm rpm
+             :ps rps}
+      :P (or p 0)})))
 
 (comment
 
-  (triples (+ 8000 40000)
-           (+ 12000 60000)
+  (triples (+ 8000 110000)
+           (+ 12000 190000)
            50)
 
   (triples 6000 9000 0)
+  (triples 20000 0)
 
   (triples 3200 50)
   (triples 100 1180 2020 50)
 
   (triples 1400 100)
+  (triples 98 500 900 100)
 
   ;; (prange 98 0.07097222)
   ;; (prange 99.95 0.07097222)
@@ -134,9 +145,9 @@
 
   ;; (- 1 (/ (int (* 99.95 10000)) 1000000))
 
-  (->> (fps 0.07097222)
-       (drop-while (comp (partial > 5) first))
-       (take 5))
+  ;; (->> (fps 0.07097222)
+  ;;      (drop-while (comp (partial > 5) first))
+  ;;      (take 5))
 
   ;; (take-last 10 (fps 0.00097222))
 
