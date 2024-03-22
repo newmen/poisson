@@ -2,7 +2,7 @@
   (:require [incanter.core :as i]
             [incanter.charts :as c]))
 
-(def sparse-overload-coef 5)
+(def sparse-overload-coef 3)
 
 (defn transpose
   [matrix]
@@ -54,15 +54,16 @@
                  :title title)))))
 
 (defn calc-lambda-rps
-  [percentil total aps]
+  [percentil total lambda1]
   (let [rf (comp second (partial prange percentil))
         cf (comp int #(Math/ceil %))
-        lambda1 aps
         max0 (rf lambda1)
         rpx (* max0 3600)
-        sparse? (> rpx total)
+        max-rph (/ total sparse-overload-coef)
+        sparse-coef (/ rpx max-rph)
+        sparse? (> sparse-coef 1)
         [max1 rph] (if sparse?
-                     [(/ max0 sparse-overload-coef) (cf (/ rpx sparse-overload-coef))]
+                     [(/ max0 sparse-coef) (cf (/ rpx sparse-coef))]
                      [max0 (cf rpx)])
         lambda2 max1
         max2 (rf lambda2)
