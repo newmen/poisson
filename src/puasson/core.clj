@@ -14,11 +14,24 @@
                      (* 2 lambda))))
      (Math/sqrt (* 2 Math/PI lambda))))
 
+(def cf (comp int #(Math/ceil %)))
+
+(defn gxf
+  [a b x]
+  (Math/exp (+ (* a (Math/log x)) b)))
+
+(defn nf
+  [x]
+  (gxf -0.24 8.42 x))
+
+(defn stepf
+  [x]
+  (gxf 0.41 -2.51 x))
+
 (defn fps
   [lambda]
-  (let [N 25000
-        mmx (* 500 lambda)
-        step (/ mmx N)
+  (let [N (nf lambda)
+        step (stepf lambda)
         rg (range 0 N)
         ks (map (partial * step) rg)]
     (transpose [ks
@@ -52,8 +65,6 @@
                  :y-label "P"
                  :series-label "Puasson distribution"
                  :title title)))))
-
-(def cf (comp int #(Math/ceil %)))
 
 (defn limit-top
   [total max0 rpx]
@@ -137,6 +148,15 @@
 
   (triples 1400 100)
   (triples 98 500 900 100)
+
+  (triples 30000000)
+  (triples 99.98 5000000 25000000 0)
+
+
+  (nf 0.07)
+  (nf 669.6429)
+  (nf 800)
+  (nf 10000)
 
   ;; (prange 98 0.07097222)
   ;; (prange 99.95 0.07097222)
