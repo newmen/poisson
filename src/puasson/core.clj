@@ -93,15 +93,15 @@
 
 (defn triples
   ([day-n]
-   (triples day-n 0))
-  ([day-n grow-percent]
+   (triples day-n {}))
+  ([day-n opts]
    (let [day-go-n (int (* 0.37 day-n))
          day-region-n (- day-n day-go-n)]
-     (triples day-go-n day-region-n grow-percent)))
-  ([day-go-n day-region-n grow-percent]
-   (triples 80 day-go-n day-region-n grow-percent))
-  ([percentil day-go-n day-region-n grow-percent]
-   (let [gp (+ 1 (/ grow-percent 100))
+     (triples day-go-n day-region-n opts)))
+  ([day-go-n day-region-n opts]
+   (let [grow-percent (get opts :grow 0)
+         percentil (get opts :percentil 80)
+         gp (+ 1 (/ grow-percent 100))
          total (* (+ day-go-n day-region-n) gp)
          dgn (* day-go-n gp)
          drn (* day-region-n gp)
@@ -134,43 +134,32 @@
 
   (triples (+ 8000 110000)
            (+ 12000 190000)
-           50)
+           {:grow 50})
 
-  (triples 6000 9000 0)
-  (triples 20000 0)
+  (triples 6000 9000)
+  (triples 20000)
+  (triples 300000)
+  (triples 110000 190000 {:percentil 95})
+  (triples 400000 600000 {:percentil 99.999})
 
-  (triples 3200 50)
-  (triples 100 1180 2020 50)
+  (triples 3200 {:grow 50})
+  (triples 3200 {:grow 50 :percentil 100})
+  (triples 2000)
+  (triples 1400 {:grow 100})
+  (triples 1400 {:grow 100 :percentil 98})
 
-  (triples 1400 100)
-  (triples 98 500 900 100)
+  (triples (* 3.5 1700000) {:percentil 98})
 
+  (triples 10000000)
   (triples 30000000)
-  (triples 99.98 5000000 25000000 0)
+  (triples 5000000 25000000 {:percentil 99.999})
 
+  ;; (fps (float 73/1440))
+  ;; (fp (float 73/1440) 0.02393)
 
-  (nf 0.07)
-  (nf 669.6429)
-  (nf 800)
-  (nf 10000)
-
-  ;; (prange 98 0.07097222)
-  ;; (prange 99.95 0.07097222)
-  ;; (prange 99.95 0.283860491112)
-  ;; (prange 99.95 1.1353284202515552)
-
-  ;; (- 1 (/ (int (* 99.95 10000)) 1000000))
-
-  ;; (->> (fps 0.07097222)
-  ;;      (drop-while (comp (partial > 5) first))
-  ;;      (take 5))
-
-  ;; (take-last 10 (fps 0.00097222))
-
-  ;; (->> (fps 0.07097222)
-  ;;      (map (fn [[k p]]
-  ;;             [k (- p 1/2000)]))
-  ;;      (filter (comp neg? second))
-  ;;      )
+  ;; (nf 0.07)
+  ;; (nf 669.6429)
+  ;; (nf 800)
+  ;; (nf 10000)
 
   )
