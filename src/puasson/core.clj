@@ -10,9 +10,9 @@
 
 (defn fp
   [lambda k]
-  (/ (Math/exp (- (/ (Math/pow (- k lambda) 2)
-                     (* 2 lambda))))
-     (Math/sqrt (* 2 Math/PI lambda))))
+  (min 1 (/ (Math/exp (- (/ (Math/pow (- k lambda) 2)
+                            (* 2 lambda))))
+            (Math/sqrt (* 2 Math/PI lambda)))))
 
 (def cf (comp int #(Math/ceil %)))
 
@@ -20,20 +20,16 @@
   [a b x]
   (Math/exp (+ (* a (Math/log x)) b)))
 
-(defn nf
-  [x]
-  (gxf -0.24 8.42 x))
-
-(defn stepf
-  [x]
-  (gxf 0.41 -2.51 x))
+(def nf (partial gxf -0.24 8.42))
+(def stepf (partial gxf 0.41 -2.51))
 
 (defn fps
   [lambda]
-  (let [N (nf lambda)
+  (let [N (int (nf lambda))
         step (stepf lambda)
-        rg (range 0 N)
-        ks (map (partial * step) rg)]
+        ks (map (partial * step)
+                (range 0 N))]
+    ;; (println "l=" lambda " N=" N " step=" step)
     (transpose [ks
                 (map (partial fp lambda) ks)])))
 
