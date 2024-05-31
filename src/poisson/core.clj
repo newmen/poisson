@@ -30,6 +30,19 @@
 (def nf (comp int (partial gxf -0.24 8.42)))
 (def stepf (partial gxf 0.41 -2.51))
 
+(defn gxf-chart
+  [f name]
+  (let [x (range 1 10000)
+        y (map (comp f float) x)]
+    (i/view (c/xy-plot x y
+                       :x-label "lambda"
+                       :y-label name))))
+
+(defn gxf-charts
+  []
+  (gxf-chart nf "N")
+  (gxf-chart stepf "step"))
+
 (defn get-fks
   [lambda]
   (if (> lambda lambda-limit)
@@ -180,6 +193,8 @@
   (normal-quantile 1000 1)
   (find-threshold 2474 0.99995)
   (normal-quantile 2474 0.99995)
+
+  (gxf-charts)
 
   (->> (fps 120312.5)
        count)
