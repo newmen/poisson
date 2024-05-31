@@ -1,5 +1,6 @@
 .calva/
 .clj-kondo/
+.history/
 .hg/
 .hgignore
 .lsp/
