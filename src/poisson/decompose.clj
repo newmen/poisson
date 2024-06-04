@@ -29,16 +29,15 @@
      :residual residual}))
 
 (defn plot-decomposition
-  [data window-size season-length]
-  (let [{:keys [trend seasonal residual]} (decompose-timeseries data window-size season-length)
-        x (range (count data))]
-    (doto (c/xy-plot x data
+  [time-data value-data window-size season-length]
+  (let [{:keys [trend seasonal residual]} (decompose-timeseries value-data window-size season-length)]
+    (doto (c/xy-plot time-data value-data
                      :x-label "Time"
                      :y-label "Value"
                      :title "Decomposition of Time Series"
                      :series-label "Original Data"
                      :legend true)
-      (c/add-lines x trend :series-label "Trend")
-      (c/add-lines x seasonal :series-label "Seasonal")
-      (c/add-lines x residual :series-label "Residual")
+      (c/add-lines time-data trend :series-label "Trend")
+      (c/add-lines time-data seasonal :series-label "Seasonal")
+      (c/add-lines time-data residual :series-label "Residual")
       (i/view))))

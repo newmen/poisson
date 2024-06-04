@@ -157,7 +157,7 @@
    (let [grow (get opts :grow 0)
          prob (get opts :prob 0.95)
          total (* day-n (inc grow))
-         aph (/ (* day-n 0.1348) 2) ; 13.48% of all requests come in interval between 13:30 and 15:30 (2 hours)
+         aph (/ (* day-n 0.1383) 2) ; 13.83% of all requests come in interval between 13:30 and 15:30 (2 hours)
          thh (peak-load-estimation aph prob)
          apm (/ thh 60)
          thm (peak-load-estimation apm prob)
@@ -195,6 +195,8 @@
   (normal-quantile 2474 0.99995)
 
   (gxf-charts)
+
+  (* 12 13.84)
 
   (->> (fps 120312.5)
        count)
