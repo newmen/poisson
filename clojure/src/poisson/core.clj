@@ -150,14 +150,24 @@
        (doto base-plot
          (i/view))))))
 
+(defn get-total-aph
+  [day-n]
+  (/ (* day-n 0.1383) 2)) ; 13.83% of all requests come in interval between 13:30 and 15:30 (2 hours))
+
 (defn triples
   ([day-n]
    (triples day-n {}))
-  ([day-n opts]
+  ([n opts]
    (let [grow (get opts :grow 0)
          prob (get opts :prob 0.95)
-         total (* day-n (inc grow))
-         aph (/ (* day-n 0.1383) 2) ; 13.83% of all requests come in interval between 13:30 and 15:30 (2 hours)
+         aph (cond
+               (not (map? n)) (get-total-aph n)
+               (:aph n) (:aph n)
+               (:work-day-n n) (let [wdn (:work-day-n n)]
+                                 (+ (/ (* wdn 0.4) 8)
+                                    (/ (* wdn 0.6) 14)))
+               (:total-day-n n) (get-total-aph (:total-day-n n)))
+         total (* aph 24 (inc grow))
          thh (peak-load-estimation aph prob)
          apm (/ thh 60)
          thm (peak-load-estimation apm prob)
@@ -178,6 +188,8 @@
              :ps ths}})))
 
 (comment
+
+  (triples {:work-day-n (* 80 5 60 8)} {:prob 0.99 :chart true})
 
   (triples (* 6300 35/10) {:prob 0.9995 :chart true})
   (triples (* 825000 35/10) {:prob 0.9995 :chart true})
