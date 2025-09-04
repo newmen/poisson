@@ -93,24 +93,24 @@ def peak_load_estimation(lmd, target_prob):
         return normal_quantile(lmd, target_prob)
     return find_threshold(lmd, target_prob)
 
-def limit_prob(prob, kps):
-    min_p = 1 - prob
+def limit_prob(quantile, kps):
+    min_p = 1 - quantile
     return [kp for kp in kps if kp[1] > min_p]
 
 def add_filled_area(plot, highlight_x, highlight_y):
     plot.fill_between(highlight_x, highlight_y, color='blue', alpha=0.3)
-    plot.plot(highlight_x, highlight_y, color='blue', linewidth=2, label='Target probability')
+    plot.plot(highlight_x, highlight_y, color='blue', linewidth=2, label='Target quantile')
 
 def chart(lmd, title, opts=None):
     if opts is None:
         opts = {}
     x_coef = opts.get('x_coef', 1)
-    prob = opts.get('prob', 0.99999999)
+    quantile = opts.get('quantile', 0.99999999)
     threshold = opts.get('threshold', None)
     if threshold:
         threshold *= x_coef
 
-    kps = limit_prob(prob, fps(lmd))
+    kps = limit_prob(quantile, fps(lmd))
     x = [kp[0] * x_coef for kp in kps]
     y = [kp[1] for kp in kps]
     title = f'Peak per {title}: {threshold}' if threshold else title
@@ -130,18 +130,29 @@ def chart(lmd, title, opts=None):
     plt.show(block=False)
     plt.pause(0.1)
 
-def triples(day_n, opts=None):
+def get_total_aph(day_n):
+    return (day_n * 0.1383) / 2  # 13.83% of all requests come in interval between 13:30 and 15:30 (2 hours)
+
+def triples(n, opts=None):
     if opts is None:
         opts = {}
     grow = opts.get('grow', 0)
-    prob = opts.get('prob', 0.95)
-    total = day_n * (1 + grow)
-    aph = (day_n * 0.1383) / 2  # 13.83% of all requests come in interval between 13:30 and 15:30 (2 hours)
-    thh = peak_load_estimation(aph, prob)
+    quantile = opts.get('quantile', 0.95)
+    if not isinstance(n, dict):
+        aph = get_total_aph(n)
+    elif 'work-hour-n' in n:
+        aph = n['work-hour-n']
+    elif 'work-day-n' in n:
+        wdn = n['work-day-n']
+        aph = (wdn * 0.4 / 8) + (wdn * 0.6 / 14)
+    elif 'total-day-n' in n:
+        aph = get_total_aph(n['total-day-n'])
+    total = aph * 24 * (1 + grow)
+    thh = peak_load_estimation(aph, quantile)
     apm = thh / 60
-    thm = peak_load_estimation(apm, prob)
+    thm = peak_load_estimation(apm, quantile)
     aps = thm / 60
-    ths = peak_load_estimation(aps, prob)
+    ths = peak_load_estimation(aps, quantile)
 
     if opts.get('chart', False):
         chart(aph, 'Hour', {'threshold': thh})
@@ -150,7 +161,7 @@ def triples(day_n, opts=None):
         plt.show()
 
     return {
-        'prob': prob,
+        'quantile': quantile,
         'total': total,
         'average': {
             'ph': total / 24.0,
@@ -168,7 +179,10 @@ def __main__():
     # Example usage:
     # print(triples(3200, {'grow': 0.5}))
 
-    print(triples(22050, {'prob': 0.9995, 'chart': True}))
-    print(triples(2887500, {'prob': 0.9995, 'chart': True}))
+    print(triples({'work-day-n': (80 * 5 * 60 * 8)},
+                  {'quantile': 0.99, 'chart': True}))
+
+    # print(triples(22050, {'quantile': 0.9995, 'chart': True}))
+    # print(triples(2887500, {'quantile': 0.9995, 'chart': True}))
 
 __main__()

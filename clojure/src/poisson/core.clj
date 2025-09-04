@@ -107,8 +107,8 @@
     (find-threshold lambda target-prob)))
 
 (defn limit-prob
-  [prob kps]
-  (let [min-p (- 1 prob)]
+  [quantile kps]
+  (let [min-p (- 1 quantile)]
     (filter (comp (partial < min-p) second)
             kps)))
 
@@ -125,11 +125,11 @@
    (chart lambda title {}))
   ([lambda title opts]
    (let [x-coef (:x-coef opts 1)
-         prob (:prob opts 0.99999999)
+         quantile (:quantile opts 0.99999999)
          threshold (when-let [th (:threshold opts)]
                      (* x-coef th))
          kps (->> (fps lambda)
-                  (limit-prob prob))
+                  (limit-prob quantile))
          x (map (comp (partial * x-coef) first) kps)
          y (map second kps)
          title' (if threshold
@@ -159,26 +159,26 @@
    (triples day-n {}))
   ([n opts]
    (let [grow (get opts :grow 0)
-         prob (get opts :prob 0.95)
+         quantile (get opts :quantile 0.95)
          aph (cond
                (not (map? n)) (get-total-aph n)
-               (:aph n) (:aph n)
+               (:work-hour-n n) (:work-hour-n n)
                (:work-day-n n) (let [wdn (:work-day-n n)]
                                  (+ (/ (* wdn 0.4) 8)
                                     (/ (* wdn 0.6) 14)))
                (:total-day-n n) (get-total-aph (:total-day-n n)))
          total (* aph 24 (inc grow))
-         thh (peak-load-estimation aph prob)
+         thh (peak-load-estimation aph quantile)
          apm (/ thh 60)
-         thm (peak-load-estimation apm prob)
+         thm (peak-load-estimation apm quantile)
          aps (/ thm 60)
-         ths (peak-load-estimation aps prob)]
+         ths (peak-load-estimation aps quantile)]
      (when (:chart opts)
        (let [xf #(hash-map :threshold %)]
          (chart aph "Hour" (xf thh))
          (chart apm "Minute" (xf thm))
          (chart aps "Second" (xf ths))))
-     {:prob prob
+     {:quantile quantile
       :total total
       :average {:ph (/ total 24.0)
                 :pm (/ total (* 24 60.0))
@@ -189,15 +189,16 @@
 
 (comment
 
-  (triples {:work-day-n (* 80 5 60 8)} {:prob 0.99 :chart true})
+  (triples {:work-day-n (* 80 5 60 8)} {:quantile 0.99 :chart true})
+  (triples {:work-hour-n (* 80 5 60)} {:quantile 0.99 :chart false})
 
-  (triples (* 6300 35/10) {:prob 0.9995 :chart true})
-  (triples (* 825000 35/10) {:prob 0.9995 :chart true})
+  (triples (* 6300 35/10) {:quantile 0.9995 :chart true})
+  (triples (* 825000 35/10) {:quantile 0.9995 :chart true})
 
   (triples 3200 {:grow 0.5})
-  (triples 3200 {:grow 0.5 :prob 0.995})
+  (triples 3200 {:grow 0.5 :quantile 0.995})
 
-  (chart 5000 "x" {:prob 0.99995})
+  (chart 5000 "x" {:quantile 0.99995})
 
   (find-threshold 0.38583332 0.995)
   (normal-quantile 0.38583332 0.995)
