@@ -106,7 +106,7 @@
     (normal-quantile lambda target-prob)
     (find-threshold lambda target-prob)))
 
-(defn limit-prob
+(defn limit-quantile
   [quantile kps]
   (let [min-p (- 1 quantile)]
     (filter (comp (partial < min-p) second)
@@ -116,7 +116,7 @@
   [plot highlight-x highlight-y]
   (-> plot
       (c/add-lines highlight-x highlight-y
-                   :series-label "Target probability"
+                   :series-label "Target quantile"
                    :line-color java.awt.Color/BLUE)
       (c/set-stroke :width 3 :dataset 1)))
 
@@ -129,7 +129,7 @@
          threshold (when-let [th (:threshold opts)]
                      (* x-coef th))
          kps (->> (fps lambda)
-                  (limit-prob quantile))
+                  (limit-quantile quantile))
          x (map (comp (partial * x-coef) first) kps)
          y (map second kps)
          title' (if threshold
@@ -152,7 +152,8 @@
 
 (defn get-total-aph
   [day-n]
-  (/ (* day-n 0.1383) 2)) ; 13.83% of all requests come in interval between 13:30 and 15:30 (2 hours))
+  (* 1.1383 ; to better align with observable peak values
+     (/ (* day-n 0.1383) 2))) ; 13.83% of all requests come in interval between 13:30 and 15:30 (2 hours))
 
 (defn triples
   ([day-n]
@@ -189,11 +190,20 @@
 
 (comment
 
+  (triples {:work-day-n (* 80 5 60 8 0.5)} {:quantile 0.99 :chart false})
+  (triples {:work-day-n (* 80 5 60 8 0.4)} {:quantile 0.99 :chart false})
+  (triples {:work-day-n (* 80 5 60 8 0.1)} {:quantile 0.99 :chart false})
+
   (triples {:work-day-n (* 80 5 60 8)} {:quantile 0.99 :chart true})
   (triples {:work-hour-n (* 80 5 60)} {:quantile 0.99 :chart false})
 
   (triples (* 6300 35/10) {:quantile 0.9995 :chart true})
   (triples (* 825000 35/10) {:quantile 0.9995 :chart true})
+
+  (triples 15000000 {:quantile 0.9995 :chart true})
+  (triples 20000000 {:quantile 0.9995 :chart false})
+  (triples 25000000 {:quantile 0.9995 :chart false})
+  (triples 98000000 {:quantile 0.9995 :chart false})
 
   (triples 3200 {:grow 0.5})
   (triples 3200 {:grow 0.5 :quantile 0.995})

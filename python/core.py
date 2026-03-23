@@ -131,7 +131,9 @@ def chart(lmd, title, opts=None):
     plt.pause(0.1)
 
 def get_total_aph(day_n):
-    return (day_n * 0.1383) / 2  # 13.83% of all requests come in interval between 13:30 and 15:30 (2 hours)
+    # coef = 1.1383 using to better align with observable peak values
+    return 1.1383 * \
+        (day_n * 0.1383) / 2  # 13.83% of all requests come in interval between 13:30 and 15:30 (2 hours)
 
 def triples(n, opts=None):
     if opts is None:
@@ -179,8 +181,11 @@ def __main__():
     # Example usage:
     # print(triples(3200, {'grow': 0.5}))
 
-    print(triples({'work-day-n': (80 * 5 * 60 * 8)},
-                  {'quantile': 0.99, 'chart': True}))
+    # print(triples({'work-day-n': (80 * 5 * 60 * 8)},
+    #               {'quantile': 0.99, 'chart': True}))
+
+    print(triples(15000000,
+                  {'quantile': 0.9995, 'chart': True}))
 
     # print(triples(22050, {'quantile': 0.9995, 'chart': True}))
     # print(triples(2887500, {'quantile': 0.9995, 'chart': True}))
