@@ -168,6 +168,12 @@
                                  (+ (/ (* wdn 0.4) 8)
                                     (/ (* wdn 0.6) 14)))
                (:total-day-n n) (get-total-aph (:total-day-n n)))
+         ;; Истинное среднее количество запросов в час (по всем суткам)
+         avg-per-hour (cond
+                        (not (map? n)) (/ n 24.0)
+                        (:work-hour-n n) (:work-hour-n n)
+                        (:work-day-n n) (/ (:work-day-n n) 24.0)
+                        (:total-day-n n) (/ (:total-day-n n) 24.0))
          total (* aph 24 (inc grow))
          thh (peak-load-estimation aph quantile)
          apm (/ thh 60)
@@ -181,9 +187,12 @@
          (chart aps "Second" (xf ths))))
      {:quantile quantile
       :total total
-      :average {:ph (/ total 24.0)
-                :pm (/ total (* 24 60.0))
-                :ps (/ total (* 24 60 60.0))}
+      :average {:ah avg-per-hour
+                :am (/ avg-per-hour 60.0)
+                :as (/ avg-per-hour 3600.0)}
+      :average-peak {:ph (/ total 24.0)
+                     :pm (/ total (* 24 60.0))
+                     :ps (/ total (* 24 60 60.0))}
       :peak {:ph thh
              :pm thm
              :ps ths}})))
@@ -200,7 +209,7 @@
   (triples (* 6300 35/10) {:quantile 0.9995 :chart true})
   (triples (* 825000 35/10) {:quantile 0.9995 :chart true})
 
-  (triples 15000000 {:quantile 0.9995 :chart true})
+  (triples 15000000 {:quantile 0.9995 :chart false})
   (triples 20000000 {:quantile 0.9995 :chart false})
   (triples 25000000 {:quantile 0.9995 :chart false})
   (triples 98000000 {:quantile 0.9995 :chart false})

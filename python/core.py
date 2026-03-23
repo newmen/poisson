@@ -142,13 +142,18 @@ def triples(n, opts=None):
     quantile = opts.get('quantile', 0.95)
     if not isinstance(n, dict):
         aph = get_total_aph(n)
+        # Истинное среднее количество запросов в час (по всем суткам)
+        avg_per_hour = n / 24.0
     elif 'work-hour-n' in n:
         aph = n['work-hour-n']
+        avg_per_hour = n['work-hour-n']
     elif 'work-day-n' in n:
         wdn = n['work-day-n']
         aph = (wdn * 0.4 / 8) + (wdn * 0.6 / 14)
+        avg_per_hour = wdn / 24.0
     elif 'total-day-n' in n:
         aph = get_total_aph(n['total-day-n'])
+        avg_per_hour = n['total-day-n'] / 24.0
     total = aph * 24 * (1 + grow)
     thh = peak_load_estimation(aph, quantile)
     apm = thh / 60
@@ -166,6 +171,11 @@ def triples(n, opts=None):
         'quantile': quantile,
         'total': total,
         'average': {
+            'ah': avg_per_hour,
+            'am': avg_per_hour / 60.0,
+            'as': avg_per_hour / 3600.0
+        },
+        'average-peak': {
             'ph': total / 24.0,
             'pm': total / (24 * 60.0),
             'ps': total / (24 * 60 * 60.0)
